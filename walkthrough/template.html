@@ -1,0 +1,1367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walkthrough</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --paper: #f4f2eb;
+  --board: #fbfaf6;
+  --ink: #1f2226;
+  --muted: #6b6e72;
+  --rule: #d8d4c7;
+  --grid: #e3dfd2;
+  --accent: #c2452a;
+  --accent-ink: #ffffff;
+  --accent-tint: rgba(194, 69, 42, 0.1);
+  --add-tint: rgba(46, 120, 74, 0.1);
+  --add-ink: #2b6e44;
+  --del-tint: rgba(170, 60, 45, 0.09);
+  --del-ink: #a23b2a;
+  --k-service: #ffffff;
+  --k-store: #f2ead8;
+  --k-client: #e6ecf1;
+  --k-external: #f4f2eb;
+  --k-queue: #e7eee4;
+  --k-infra: #ebe9e3;
+  --group-fill: rgba(31, 34, 38, 0.025);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #161a19;
+    --board: #1c2120;
+    --ink: #e6e3d9;
+    --muted: #9aa19c;
+    --rule: #333a38;
+    --grid: #272d2b;
+    --accent: #ee7d5c;
+    --accent-ink: #161a19;
+    --accent-tint: rgba(238, 125, 92, 0.13);
+    --add-tint: rgba(110, 190, 135, 0.11);
+    --add-ink: #8fcf9f;
+    --del-tint: rgba(235, 120, 100, 0.11);
+    --del-ink: #f0998a;
+    --k-service: #232927;
+    --k-store: #2c2921;
+    --k-client: #222a30;
+    --k-external: #1c2120;
+    --k-queue: #212b24;
+    --k-infra: #272a29;
+    --group-fill: rgba(230, 227, 217, 0.03);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+button, textarea, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+#empty { max-width: 40rem; margin: 4rem auto; padding: 0 1.25rem; font-family: var(--sans); font-size: 1.15rem; }
+
+#app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.6rem clamp(1rem, 4vw, 3rem) 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.mode {
+  margin: 0 0 0.2rem;
+  font: 600 0.64rem/1 var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1 {
+  margin: 0;
+  font: 600 clamp(1.1rem, 1.8vw, 1.35rem)/1.15 var(--sans);
+  letter-spacing: -0.01em;
+}
+.subtitle { margin: 0.2rem 0 0; color: var(--muted); font: 0.85rem/1.4 var(--sans); }
+.counter {
+  margin: 0;
+  font: 1.15rem/1 var(--sans);
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+.counter .of { color: var(--muted); }
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 1fr);
+  gap: clamp(1.25rem, 3vw, 2.75rem);
+  align-items: stretch;
+  min-height: 0;
+  padding: 0.9rem clamp(1rem, 4vw, 3rem);
+}
+.board {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--board);
+  background-image: radial-gradient(var(--grid) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  min-width: 0;
+}
+.board.empty { display: none; }
+.visual { min-width: 0; min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.visual svg { display: block; width: 100%; height: 100%; flex: 1; min-height: 0; }
+.visual .code-view { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.caption {
+  margin: 0.85rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--rule);
+  max-width: 38rem;
+  color: var(--muted);
+  font: 0.86rem/1.4 var(--sans);
+}
+.caption:empty { display: none; }
+
+.notes { min-width: 0; min-height: 0; padding-top: 0.25rem; display: flex; flex-direction: column; font-size: 0.9rem; }
+.notes-top { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font: 600 0.75rem/1 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+h2 {
+  margin: 0 0 0.85rem;
+  font: 600 clamp(1.15rem, 1.9vw, 1.45rem)/1.2 var(--sans);
+}
+#step-title { margin-bottom: 0.5rem; font-size: 1.02rem; }
+.codelink { color: var(--accent); text-decoration: underline dotted; text-underline-offset: 0.2em; }
+.codelink:hover { text-decoration-style: solid; }
+.text { margin: 0; font-size: 0.97rem; line-height: 1.65; max-width: 38rem; }
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  padding: 0.08em 0.32em;
+  border-radius: 4px;
+  background: var(--accent-tint);
+  white-space: nowrap;
+}
+
+.ask { margin-top: 1.75rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
+.ask-prompt { margin: 0 0 0.75rem; font: 600 0.95rem/1.35 var(--sans); }
+.options { display: grid; gap: 0.6rem; }
+.option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  background: var(--board);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.option:hover { border-color: var(--muted); }
+.option[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.option-head { display: flex; align-items: baseline; gap: 0.6rem; }
+.option-label { font: 600 0.92rem/1.3 var(--sans); }
+.tag {
+  font: 600 0.6rem/1 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+}
+.option dl { margin: 0.4rem 0 0; display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.6rem; font-size: 0.84rem; }
+.option dt { color: var(--muted); font: 600 0.64rem/1.9 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; }
+.option dd { margin: 0; }
+
+.verdicts { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.verdict {
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--board);
+  cursor: pointer;
+}
+.verdict:hover { border-color: var(--muted); }
+.verdict[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+textarea.note {
+  display: block;
+  width: 100%;
+  min-height: 4.5rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--board);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  resize: vertical;
+  line-height: 1.45;
+}
+textarea.note:focus { outline: none; border-color: var(--accent); }
+
+.askme { flex: none; margin-top: 0.8rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.askme h3 { margin: 0 0 0.4rem; font: 600 0.68rem/1 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.ask-box { position: relative; }
+.ask-box textarea.note { padding-right: 2.6rem; }
+.ask-box .send {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+.ask-box .send svg { width: 1rem; height: 1rem; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.askme .row { display: flex; align-items: center; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem; }
+.qa { flex: 1 1 0; min-height: 4rem; overflow-y: auto; margin-top: 0.8rem; display: grid; align-content: start; gap: 0.7rem; }
+.qa .who { font: 600 0.62rem/1.6 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.qa .q { font-size: 0.86rem; white-space: pre-wrap; }
+.qa .a { margin-top: 0.3rem; padding: 0.5rem 0.7rem; background: var(--accent-tint); border-radius: 6px; font-size: 0.86rem; white-space: pre-wrap; }
+.qa .pending { margin-top: 0.3rem; color: var(--muted); font: 0.82rem var(--sans); }
+
+.board { position: relative; }
+.diagram .node.has-files rect { cursor: pointer; }
+.tip {
+  position: absolute;
+  z-index: 5;
+  max-width: 24rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  font: 0.82rem/1.5 var(--mono);
+}
+.tip h4 { margin: 0 0 0.3rem; font: 600 0.68rem/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.tip button { display: block; width: 100%; text-align: left; padding: 0.15rem 0.3rem; background: none; border: 0; border-radius: 4px; cursor: pointer; font: inherit; }
+.tip button:hover { background: var(--accent-tint); }
+.filepanel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 20;
+  width: min(48rem, 62vw);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-right: 1px solid var(--rule);
+  box-shadow: 8px 0 30px rgba(0, 0, 0, 0.18);
+}
+.filepanel header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 1rem; border-bottom: 1px solid var(--rule); font: 600 0.9rem var(--mono); }
+.filepanel .body { overflow: auto; padding: 0.75rem 1rem; }
+
+.code-view { font: 0.86rem/1.6 var(--mono); }
+.code-file {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0 0.55rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  font-weight: 600;
+}
+.code-file .lang { color: var(--muted); font-weight: 400; }
+.code-scroll { overflow: auto; min-height: 0; flex: 1; }
+.code-lines { width: max-content; min-width: 100%; }
+.ln { display: flex; border-left: 3px solid transparent; }
+.ln .num { flex: none; width: 2.6rem; padding-right: 0.8rem; text-align: right; color: var(--muted); user-select: none; }
+.ln .pfx { flex: none; width: 1.3rem; user-select: none; }
+.ln .src { white-space: pre; padding-right: 1rem; }
+.ln.add { background: var(--add-tint); }
+.ln.add .pfx { color: var(--add-ink); }
+.ln.del { background: var(--del-tint); }
+.ln.del .pfx, .ln.del .src { color: var(--del-ink); }
+.ln.hunk .src { color: var(--muted); font-style: italic; }
+.ln.hl { border-left-color: var(--accent); background-image: linear-gradient(var(--accent-tint), var(--accent-tint)); font-weight: 600; }
+.ln.hl .num { color: var(--accent); }
+
+.diagram .group rect { fill: var(--group-fill); stroke: var(--rule); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.diagram .group text { fill: var(--muted); font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; }
+.diagram .node rect { stroke: var(--ink); stroke-width: 1.4; fill: var(--k-service); }
+.diagram .k-store rect { fill: var(--k-store); }
+.diagram .k-client rect { fill: var(--k-client); }
+.diagram .k-external rect { fill: var(--k-external); stroke-dasharray: 5 3; }
+.diagram .k-queue rect { fill: var(--k-queue); }
+.diagram .k-infra rect { fill: var(--k-infra); }
+.diagram .node .label { fill: var(--ink); font: 600 14px var(--sans); }
+.diagram .node .sub { fill: var(--muted); font: 11.5px var(--sans); }
+.diagram .edge line { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.diagram .edge.dashed line { stroke-dasharray: 6 4; }
+.diagram .edge rect { fill: var(--board); stroke: var(--rule); stroke-width: 1; }
+.diagram .edge text { fill: var(--muted); font: 11.5px var(--sans); }
+.diagram .ah { fill: var(--ink); }
+.diagram .ah-hl { fill: var(--accent); }
+.diagram .hl rect { stroke: var(--accent); stroke-width: 2.2; }
+.diagram .group.hl rect { stroke-width: 1.6; }
+.diagram .group.hl text { fill: var(--accent); }
+.diagram .edge.hl line { stroke: var(--accent); stroke-width: 2; }
+.diagram .edge.hl rect { stroke: var(--accent); }
+.diagram .edge.hl text { fill: var(--accent); }
+.diagram .past { opacity: 0.5; }
+.diagram .new { animation: pop 300ms ease-out both; transform-box: fill-box; transform-origin: center; }
+.diagram .new line.draw { animation: draw 300ms ease-out both; }
+@keyframes pop { from { opacity: 0; transform: scale(0.94); } }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+.bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  padding: 0.4rem clamp(1rem, 4vw, 3rem) 0.5rem;
+}
+.bar .btn { padding: 0.28rem 0.75rem; font-size: 0.85rem; }
+.dots { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.3rem; }
+.dot {
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.dot::before {
+  content: "";
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  background: transparent;
+  transition: transform 120ms;
+}
+.dot.seen::before { background: var(--muted); }
+.dot.answered::before { background: var(--ink); border-color: var(--ink); }
+.dot.current::before { border-color: var(--accent); background: var(--accent); transform: scale(1.35); }
+.dot:hover::before { border-color: var(--ink); }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
+.controls .group { display: flex; align-items: center; gap: 0.5rem; }
+.controls .finish { margin-left: auto; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--board);
+  cursor: pointer;
+  line-height: 1.3;
+}
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn.accent { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.btn.accent:hover { background: var(--accent); color: var(--accent-ink); }
+.btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.btn svg { width: 1.05em; height: 1.05em; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.btn .wave { display: none; }
+.btn[aria-pressed="true"] .wave { display: inline; }
+.btn[aria-pressed="false"] .mute { display: inline; }
+.btn .mute { display: none; }
+.small { font-size: 0.85rem; color: var(--muted); }
+.answered-count { font-variant-numeric: tabular-nums; }
+button:focus-visible, .dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.result {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(20, 22, 24, 0.45);
+}
+.sheet {
+  width: min(44rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1.4rem 1.5rem;
+}
+.sheet h2 { margin-bottom: 0.5rem; }
+.sheet p { margin: 0 0 0.9rem; }
+.sheet textarea {
+  display: block;
+  width: 100%;
+  height: 16rem;
+  padding: 0.7rem;
+  font: 0.8rem/1.5 var(--mono);
+  background: var(--board);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  resize: vertical;
+}
+.sheet .row { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.9rem; }
+
+@media (max-width: 900px) {
+  #app { height: auto; min-height: 100vh; }
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .notes, .notes-top, .qa { overflow: visible; }
+  .visual svg { height: auto; }
+  .top { align-items: flex-start; }
+  .controls .finish { margin-left: 0; }
+  .bar { position: static; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .diagram .new, .diagram .new line.draw { animation: none; }
+  .dot::before, .option { transition: none; }
+}
+</style>
+</head>
+<body>
+<p id="empty" hidden>No walkthrough data. Build one with scripts/build.py.</p>
+
+<div id="app" hidden>
+  <header class="top">
+    <div>
+      <p class="mode" id="mode"></p>
+      <h1 id="title"></h1>
+      <p class="subtitle" id="subtitle"></p>
+    </div>
+    <p class="counter" id="counter"></p>
+  </header>
+
+  <main class="stage">
+    <figure class="board" id="board">
+      <div class="visual" id="visual"></div>
+      <div class="tip" id="tip" hidden></div>
+    </figure>
+    <section class="notes" aria-live="polite">
+      <div class="notes-top">
+        <h2 id="step-title"></h2>
+        <p class="text" id="step-text"></p>
+        <div id="interaction"></div>
+      </div>
+      <div class="qa" id="qa"></div>
+      <div class="askme" id="askme">
+        <h3>Ask the agent</h3>
+        <div class="ask-box">
+          <textarea class="note" id="ask-text" aria-label="Question for the agent" placeholder="Question about this step"></textarea>
+          <button class="send" id="ask-send" type="button" aria-label="Send question" title="Send question (Cmd+Enter)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+        </div>
+        <div class="row">
+          <span class="small" id="ask-status"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="filepanel" id="filepanel" role="dialog" aria-label="File" hidden>
+    <header>
+      <span id="filepanel-name"></span>
+      <button class="btn" id="filepanel-close" type="button">Close (Esc)</button>
+    </header>
+    <div class="body" id="filepanel-body"></div>
+  </aside>
+
+  <footer class="bar">
+    <nav class="dots" id="dots" aria-label="Steps"></nav>
+    <div class="controls">
+      <div class="group">
+        <button class="btn" id="prev" type="button">Prev</button>
+        <button class="btn primary" id="next" type="button">Next</button>
+      </div>
+      <div class="group">
+        <button class="btn" id="voice" type="button" aria-pressed="false" title="Narration (m)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+          <span id="voice-label">Narration off</span>
+        </button>
+        <button class="btn" id="replay" type="button" title="Replay narration (r)">Replay</button>
+        <span class="small" id="nospeech" hidden>no speech in this browser</span>
+      </div>
+      <div class="group finish">
+        <span class="small answered-count" id="answered"></span>
+        <button class="btn accent" id="finish" type="button">Finish / send answers</button>
+      </div>
+    </div>
+  </footer>
+
+  <div class="result" id="result" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden>
+    <div class="sheet">
+      <h2 id="result-title">Answers</h2>
+      <p id="result-msg"></p>
+      <textarea id="result-json" readonly hidden></textarea>
+      <div class="row">
+        <button class="btn" id="copy" type="button" hidden>Copy answers</button>
+        <button class="btn primary" id="result-close" type="button">Back to walkthrough</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>/*__HLJS_CSS__*/</style>
+<style>
+.code-lines.hljs { background: transparent; color: var(--ink); padding: 0; overflow: visible; }
+</style>
+<script>/*__HLJS_JS__*/</script>
+<script>
+const WALKTHROUGH = /*__WALKTHROUGH_DATA__*/null;
+
+const VERDICTS = ['approve', 'flag'];
+
+function edgeId(edge) {
+  return edge.id || `${edge.from}->${edge.to}`;
+}
+
+function computeDiagramState(doc, index) {
+  const edges = (doc.diagram && doc.diagram.edges) || [];
+  const visible = new Set();
+  let added = [];
+  let highlight = [];
+  for (let i = 0; i <= index && i < doc.steps.length; i++) {
+    const visual = doc.steps[i].visual;
+    if (!visual || visual.type !== 'diagram') continue;
+    const add = visual.add || [];
+    add.forEach(id => visible.add(id));
+    (visual.remove || []).forEach(id => visible.delete(id));
+    if (i === index) {
+      added = add;
+      highlight = visual.highlight || add;
+    }
+  }
+  // An edge whose endpoint is gone would dangle, so it disappears with the node.
+  for (const edge of edges) {
+    if (!visible.has(edge.from) || !visible.has(edge.to)) visible.delete(edgeId(edge));
+  }
+  return {
+    visible: [...visible],
+    added: added.filter(id => visible.has(id)),
+    highlight: highlight.filter(id => visible.has(id)),
+  };
+}
+
+function isAnswered(interaction, answer) {
+  if (!answer) return false;
+  if (interaction.type === 'choice') return interaction.options.some(o => o.id === answer.choice);
+  if (interaction.type === 'review') return VERDICTS.includes(answer.verdict);
+  return typeof answer.note === 'string' && answer.note.trim() !== '';
+}
+
+function buildAnswers(doc, answers, now = new Date()) {
+  const out = {};
+  for (const step of doc.steps) {
+    const interaction = step.interaction;
+    if (!interaction) continue;
+    const answer = answers[step.id] || {};
+    const note = typeof answer.note === 'string' ? answer.note.trim() : '';
+    const entry = { step: step.title, type: interaction.type };
+    if (isAnswered(interaction, answer)) {
+      if (interaction.type === 'choice') entry.choice = answer.choice;
+      if (interaction.type === 'review') entry.verdict = answer.verdict;
+      if (interaction.type !== 'choice' || interaction.note) entry.note = note;
+    } else {
+      entry.skipped = true;
+      if (note) entry.note = note;
+    }
+    out[step.id] = entry;
+  }
+  return {
+    title: doc.title,
+    mode: doc.mode,
+    submitted: now.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    answers: out,
+  };
+}
+
+if (typeof module !== 'undefined') module.exports = { computeDiagramState, buildAnswers, isAnswered };
+
+if (typeof document !== 'undefined') {
+  if (!WALKTHROUGH) {
+    document.getElementById('empty').hidden = false;
+  } else {
+    startWalkthrough(WALKTHROUGH);
+  }
+}
+
+function startWalkthrough(doc) {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
+  const steps = doc.steps;
+  const answersKey = `walkthrough:answers:${doc.title}`;
+  const voiceKey = 'walkthrough:narration';
+  const synth = window.speechSynthesis;
+  const seen = new Set();
+  let current = 0;
+  let narrate = true;
+  let answers = {};
+
+  try { answers = JSON.parse(localStorage.getItem(answersKey)) || {}; } catch { answers = {}; }
+  try { narrate = localStorage.getItem(voiceKey) !== 'off'; } catch { narrate = true; }
+  if (typeof doc.narration === 'boolean') narrate = doc.narration;
+
+  document.title = doc.title;
+  $('app').hidden = false;
+  $('mode').textContent = doc.mode || '';
+  $('title').textContent = doc.title;
+  $('subtitle').textContent = doc.subtitle || '';
+  $('subtitle').hidden = !doc.subtitle;
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function svgEl(tag, attrs, parent) {
+    const node = document.createElementNS(SVGNS, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  function appendCodeText(target, text) {
+    String(text).split(/`([^`]+)`/).forEach((part, i) => {
+      if (!part) return;
+      target.appendChild(i % 2 ? el('code', '', part) : document.createTextNode(part));
+    });
+  }
+
+  function inlineText(target, text) {
+    target.replaceChildren();
+    const parts = String(text).split(/\[([^\]]+)\]\(([^)#\s]+)#L(\d+)(?:-L?(\d+))?\)/);
+    for (let i = 0; i < parts.length; i += 5) {
+      if (parts[i]) appendCodeText(target, parts[i]);
+      if (i + 1 >= parts.length) break;
+      const path = parts[i + 2];
+      const start = Number(parts[i + 3]);
+      const end = Number(parts[i + 4] || start);
+      const a = el('a', 'codelink');
+      a.href = '#';
+      a.title = `${path}, lines ${start}-${end}`;
+      appendCodeText(a, parts[i + 1]);
+      a.addEventListener('click', e => { e.preventDefault(); openFile(path, start, end); });
+      target.appendChild(a);
+    }
+  }
+
+  function saveAnswers() {
+    try { localStorage.setItem(answersKey, JSON.stringify(answers)); } catch {}
+    updateProgress();
+  }
+
+  function answerFor(id) {
+    if (!answers[id]) answers[id] = {};
+    return answers[id];
+  }
+
+  // Diagram
+
+  function wrapLabel(label, width) {
+    const maxChars = Math.max(6, Math.floor((width - 16) / 7.8));
+    if (label.length <= maxChars || !label.includes(' ')) return [label];
+    const words = label.split(' ');
+    let best = null;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(' ');
+      const b = words.slice(i).join(' ');
+      const worst = Math.max(a.length, b.length);
+      if (!best || worst < best.worst) best = { worst, lines: [a, b] };
+    }
+    return best.lines;
+  }
+
+  function boxPoint(box, tx, ty, gap) {
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    const dx = tx - cx;
+    const dy = ty - cy;
+    const len = Math.hypot(dx, dy);
+    if (!len) return [cx, cy];
+    const t = Math.min(dx ? box.w / 2 / Math.abs(dx) : Infinity, dy ? box.h / 2 / Math.abs(dy) : Infinity);
+    return [cx + dx * t + (dx / len) * gap, cy + dy * t + (dy / len) * gap];
+  }
+
+  function stateClasses(id, state) {
+    const classes = [];
+    const lit = state.highlight.includes(id);
+    if (lit) classes.push('hl');
+    else if (state.highlight.length) classes.push('past');
+    if (state.added.includes(id)) classes.push('new');
+    return classes.join(' ');
+  }
+
+  function renderDiagram(container, visual) {
+    const def = doc.diagram || {};
+    const width = def.width || 800;
+    const height = def.height || 450;
+    const state = computeDiagramState(doc, current);
+    const visible = new Set(state.visible);
+    const boxes = new Map();
+    for (const n of def.nodes || []) boxes.set(n.id, { ...n, w: n.w || 150, h: n.h || 56 });
+
+    const root = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, class: 'diagram', role: 'img', 'aria-label': visual.caption || 'Diagram' });
+    container.appendChild(root);
+    const defs = svgEl('defs', {}, root);
+    for (const [id, cls] of [['wt-ah', 'ah'], ['wt-ah-hl', 'ah-hl']]) {
+      const marker = svgEl('marker', { id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+      svgEl('path', { d: 'M0,0 L10,5 L0,10 z', class: cls }, marker);
+    }
+
+    for (const g of def.groups || []) {
+      if (!visible.has(g.id)) continue;
+      const node = svgEl('g', { class: `group ${stateClasses(g.id, state)}` }, root);
+      svgEl('rect', { x: g.x, y: g.y, width: g.w || 150, height: g.h || 56, rx: 10 }, node);
+      svgEl('text', { x: g.x + 12, y: g.y + 20 }, node).textContent = g.label || '';
+    }
+
+    const edgeLayer = svgEl('g', {}, root);
+    for (const e of def.edges || []) {
+      const id = edgeId(e);
+      if (!visible.has(id)) continue;
+      const a = boxes.get(e.from);
+      const b = boxes.get(e.to);
+      if (!a || !b) continue;
+      const classes = stateClasses(id, state);
+      const node = svgEl('g', { class: `edge ${e.dashed ? 'dashed' : ''} ${classes}` }, edgeLayer);
+      const [x1, y1] = boxPoint(a, b.x + b.w / 2, b.y + b.h / 2, 3);
+      const [x2, y2] = boxPoint(b, a.x + a.w / 2, a.y + a.h / 2, 3);
+      const line = svgEl('line', {
+        x1, y1, x2, y2,
+        'marker-end': `url(#${classes.includes('hl') ? 'wt-ah-hl' : 'wt-ah'})`,
+      }, node);
+      if (!e.dashed && classes.includes('new')) {
+        line.setAttribute('pathLength', 1);
+        line.setAttribute('stroke-dasharray', 1);
+        line.setAttribute('class', 'draw');
+      }
+      if (e.label) {
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const bg = svgEl('rect', { rx: 4 }, node);
+        const text = svgEl('text', { x: mx, y: my, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, node);
+        text.textContent = e.label;
+        const w = (text.getBBox().width || e.label.length * 6.4) + 12;
+        bg.setAttribute('x', mx - w / 2);
+        bg.setAttribute('y', my - 10);
+        bg.setAttribute('width', w);
+        bg.setAttribute('height', 20);
+      }
+    }
+
+    for (const box of boxes.values()) {
+      if (!visible.has(box.id)) continue;
+      const files = Array.isArray(box.files) ? box.files : [];
+      const node = svgEl('g', { class: `node k-${box.kind || 'service'} ${stateClasses(box.id, state)} ${files.length ? 'has-files' : ''}` }, root);
+      const rect = svgEl('rect', { x: box.x, y: box.y, width: box.w, height: box.h, rx: 6 }, node);
+      if (files.length) {
+        node.addEventListener('mouseenter', () => showTip(box, rect, false));
+        node.addEventListener('mouseleave', hideTipSoon);
+        node.addEventListener('click', () => showTip(box, rect, true));
+      }
+      const lines = wrapLabel(String(box.label || box.id), box.w);
+      const total = lines.length * 17 + (box.sub ? 15 : 0);
+      let y = box.y + box.h / 2 - total / 2 + 8.5;
+      const cx = box.x + box.w / 2;
+      for (const line of lines) {
+        svgEl('text', { x: cx, y, class: 'label', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, node).textContent = line;
+        y += 17;
+      }
+      if (box.sub) {
+        svgEl('text', { x: cx, y: y - 1, class: 'sub', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, node).textContent = box.sub;
+      }
+    }
+  }
+
+  // Files behind a node: tooltip on hover, code in the left panel on click
+
+  let tipTimer = null;
+  let tipPinned = false;
+
+  function hideTip() {
+    $('tip').hidden = true;
+    tipPinned = false;
+  }
+
+  function hideTipSoon() {
+    if (tipPinned) return;
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(hideTip, 250);
+  }
+
+  function showTip(box, rect, pin) {
+    clearTimeout(tipTimer);
+    const tip = $('tip');
+    if (pin && tipPinned && tip.dataset.node === box.id) { hideTip(); return; }
+    tipPinned = pin;
+    tip.dataset.node = box.id;
+    tip.replaceChildren(el('h4', '', `${box.label} · files`));
+    for (const path of box.files) {
+      const b = el('button', '', path);
+      b.type = 'button';
+      b.addEventListener('click', () => openFile(path));
+      tip.appendChild(b);
+    }
+    const board = $('board').getBoundingClientRect();
+    const r = rect.getBoundingClientRect();
+    tip.hidden = false;
+    let left = r.left - board.left;
+    const top = r.bottom - board.top + 6;
+    if (left + tip.offsetWidth > board.width - 8) left = Math.max(8, board.width - tip.offsetWidth - 8);
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+  }
+
+  $('tip').addEventListener('mouseenter', () => clearTimeout(tipTimer));
+  $('tip').addEventListener('mouseleave', hideTipSoon);
+
+  function openFile(path, start, end) {
+    const files = doc.files || {};
+    const panel = $('filepanel');
+    $('filepanel-name').textContent = path;
+    const body = $('filepanel-body');
+    body.replaceChildren();
+    if (typeof files[path] !== 'string') {
+      body.appendChild(el('p', 'small', 'This file was not embedded at build time. Build with --root pointing at the project.'));
+    } else {
+      const highlight = start ? Array.from({ length: end - start + 1 }, (_, i) => start + i) : [];
+      renderLines(body, { file: path, lang: path.split('.').pop(), code: files[path], highlight }, false);
+    }
+    const r = $('board').getBoundingClientRect();
+    panel.style.top = `${r.top}px`;
+    panel.style.bottom = `${Math.max(0, window.innerHeight - r.bottom)}px`;
+    panel.hidden = false;
+    $('filepanel-close').focus();
+    const first = body.querySelector('.ln.hl');
+    if (first) first.scrollIntoView({ block: 'center' });
+  }
+
+  function closeFile() {
+    $('filepanel').hidden = true;
+  }
+
+  $('filepanel-close').addEventListener('click', closeFile);
+
+  // Questions to the agent
+
+  const served = location.protocol === 'http:' || location.protocol === 'https:';
+  const questionsKey = `walkthrough:questions:${doc.title}`;
+  let questions = [];
+  let replies = {};
+  let agentAnswers = true;
+  try { questions = JSON.parse(localStorage.getItem(questionsKey)) || []; } catch { questions = []; }
+
+  function renderQuestions() {
+    const list = $('qa');
+    list.replaceChildren();
+    const step = steps[current];
+    for (const q of questions.filter(q => q.step === step.id)) {
+      const item = el('div');
+      item.append(el('div', 'who', 'You'), el('div', 'q', q.question));
+      const answer = replies[q.id];
+      if (typeof answer === 'string' && answer.trim()) {
+        item.append(el('div', 'who', 'Agent'), el('div', 'a', answer));
+      } else {
+        item.appendChild(el('div', 'pending', !served ? 'Paste the question to the agent.' : agentAnswers ? 'The agent is thinking.' : 'Sent. Say "check questions" to the agent; its answer appears here.'));
+      }
+      list.appendChild(item);
+    }
+  }
+
+  async function sendQuestion() {
+    const area = $('ask-text');
+    const text = area.value.trim();
+    if (!text) return;
+    const step = steps[current];
+    const q = {
+      id: `q${Date.now().toString(36)}`,
+      step: step.id,
+      title: step.title,
+      question: text,
+      asked: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    };
+    questions.push(q);
+    try { localStorage.setItem(questionsKey, JSON.stringify(questions)); } catch {}
+    area.value = '';
+    renderQuestions();
+    if (!served) {
+      showJson('Paste this question to the agent.', JSON.stringify(q, null, 2));
+      $('result').hidden = false;
+      return;
+    }
+    $('ask-status').textContent = 'Sending.';
+    try {
+      const res = await fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(q) });
+      const body = await res.json();
+      if (res.ok && body.ok) {
+        agentAnswers = body.agent !== false;
+        $('ask-status').textContent = 'Sent.';
+        renderQuestions();
+        return;
+      }
+    } catch {}
+    $('ask-status').textContent = 'Could not reach the server.';
+  }
+
+  async function pollReplies() {
+    if (!served) return;
+    try {
+      const res = await fetch('/replies', { cache: 'no-store' });
+      if (!res.ok) return;
+      const body = await res.json();
+      if (JSON.stringify(body) !== JSON.stringify(replies)) {
+        replies = body;
+        renderQuestions();
+      }
+    } catch {}
+  }
+
+  $('ask-send').addEventListener('click', sendQuestion);
+  $('ask-text').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendQuestion(); }
+  });
+  if (served) setInterval(pollReplies, 3000);
+
+  // The server exits shortly after the last open page closes; a reload says hello again within that time.
+  const pageId = Math.random().toString(36).slice(2);
+  function hello() {
+    fetch('/hello', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page: pageId }) }).catch(() => {});
+  }
+  if (served) {
+    hello();
+    window.addEventListener('pageshow', e => { if (e.persisted) hello(); });
+    window.addEventListener('pagehide', () => navigator.sendBeacon('/closed', JSON.stringify({ page: pageId })));
+  }
+
+  // Diff and code
+
+  const LANG_BY_EXT = { py: 'python', js: 'javascript', mjs: 'javascript', ts: 'typescript', sh: 'bash', zsh: 'bash',
+    bash: 'bash', json: 'json', yml: 'yaml', yaml: 'yaml', go: 'go', diff: 'diff', patch: 'diff', dockerfile: 'dockerfile' };
+
+  function languageFor(lang, file) {
+    const hl = window.hljs;
+    if (!hl) return null;
+    const candidates = [lang, LANG_BY_EXT[String(lang || '').toLowerCase()]];
+    if (file) {
+      const base = file.split('/').pop();
+      candidates.push(LANG_BY_EXT[base.toLowerCase()], LANG_BY_EXT[base.split('.').pop().toLowerCase()]);
+    }
+    return candidates.find(c => c && hl.getLanguage(c)) || null;
+  }
+
+  // Highlight the whole text once, so strings and comments that span lines keep their colour, then cut the
+  // HTML back into lines, reopening the spans that were open at each line break.
+  function colorLines(lines, lang, file) {
+    const language = languageFor(lang, file);
+    if (!language) return null;
+    let html;
+    try { html = window.hljs.highlight(lines.join('\n'), { language, ignoreIllegals: true }).value; } catch { return null; }
+    const out = [];
+    const open = [];
+    for (const piece of html.split('\n')) {
+      let line = open.join('');
+      line += piece;
+      const tags = piece.match(/<span class="[^"]*">|<\/span>/g) || [];
+      for (const t of tags) {
+        if (t === '</span>') open.pop();
+        else open.push(t);
+      }
+      line += '</span>'.repeat(open.length);
+      out.push(line);
+    }
+    return out;
+  }
+
+  function renderLines(container, visual, isDiff) {
+    const view = el('div', 'code-view');
+    if (visual.file || visual.lang) {
+      const head = el('div', 'code-file');
+      head.append(el('span', '', visual.file || ''), el('span', 'lang', visual.lang || ''));
+      view.appendChild(head);
+    }
+    const scroll = el('div', 'code-scroll');
+    const body = el('div', 'code-lines');
+    const lines = String((isDiff ? visual.hunk : visual.code) || '').split('\n');
+    if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+    const highlight = new Set(visual.highlight || []);
+    const rows = lines.map(raw => {
+      const row = el('div', 'ln');
+      let prefix = '';
+      let src = raw;
+      if (isDiff) {
+        if (raw.startsWith('@@')) row.classList.add('hunk');
+        else {
+          prefix = raw.charAt(0);
+          src = raw.slice(1);
+          if (prefix === '+') row.classList.add('add');
+          if (prefix === '-') row.classList.add('del');
+        }
+      }
+      return { row, prefix, src };
+    });
+    const colored = colorLines(rows.map(r => r.row.classList.contains('hunk') ? '' : r.src), visual.lang, visual.file);
+    if (colored) body.classList.add('hljs');
+    rows.forEach(({ row, prefix, src }, i) => {
+      if (highlight.has(i + 1)) row.classList.add('hl');
+      row.appendChild(el('span', 'num', String(i + 1)));
+      if (isDiff) row.appendChild(el('span', 'pfx', prefix.trim()));
+      const code = el('span', 'src', src || ' ');
+      if (colored && !row.classList.contains('hunk') && src) code.innerHTML = colored[i];
+      row.appendChild(code);
+      body.appendChild(row);
+    });
+    scroll.appendChild(body);
+    view.appendChild(scroll);
+    container.appendChild(view);
+  }
+
+  // Interactions
+
+  function noteField(stepId, placeholder) {
+    const area = el('textarea', 'note');
+    area.placeholder = placeholder;
+    area.value = (answers[stepId] && answers[stepId].note) || '';
+    area.setAttribute('aria-label', placeholder);
+    area.addEventListener('input', () => {
+      answerFor(stepId).note = area.value;
+      saveAnswers();
+    });
+    return area;
+  }
+
+  function pressGroup(buttons, selected) {
+    buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === selected)));
+  }
+
+  function renderInteraction(step) {
+    const box = $('interaction');
+    box.replaceChildren();
+    const it = step.interaction;
+    if (!it) return;
+    const wrap = el('div', 'ask');
+    if (it.prompt) wrap.appendChild(el('p', 'ask-prompt', it.prompt));
+
+    if (it.type === 'choice') {
+      const list = el('div', 'options');
+      const buttons = it.options.map(opt => {
+        const b = el('button', 'option');
+        b.type = 'button';
+        b.dataset.value = opt.id;
+        const head = el('div', 'option-head');
+        head.appendChild(el('span', 'option-label', opt.label || opt.id));
+        if (opt.id === it.recommended) head.appendChild(el('span', 'tag', 'suggested'));
+        b.appendChild(head);
+        if (opt.pros || opt.cons) {
+          const dl = el('dl');
+          if (opt.pros) dl.append(el('dt', '', 'For'), el('dd', '', opt.pros));
+          if (opt.cons) dl.append(el('dt', '', 'Against'), el('dd', '', opt.cons));
+          b.appendChild(dl);
+        }
+        list.appendChild(b);
+        return b;
+      });
+      buttons.forEach(b => b.addEventListener('click', () => {
+        const a = answerFor(step.id);
+        a.choice = a.choice === b.dataset.value ? undefined : b.dataset.value;
+        pressGroup(buttons, a.choice);
+        saveAnswers();
+      }));
+      pressGroup(buttons, answers[step.id] && answers[step.id].choice);
+      wrap.appendChild(list);
+      if (it.note) wrap.appendChild(noteField(step.id, 'Note (optional)'));
+    }
+
+    if (it.type === 'review') {
+      const row = el('div', 'verdicts');
+      const labels = { approve: 'Approve', flag: 'Flag' };
+      const buttons = VERDICTS.map(v => {
+        const b = el('button', 'verdict', labels[v]);
+        b.type = 'button';
+        b.dataset.value = v;
+        row.appendChild(b);
+        return b;
+      });
+      buttons.forEach(b => b.addEventListener('click', () => {
+        const a = answerFor(step.id);
+        a.verdict = a.verdict === b.dataset.value ? undefined : b.dataset.value;
+        pressGroup(buttons, a.verdict);
+        saveAnswers();
+      }));
+      pressGroup(buttons, answers[step.id] && answers[step.id].verdict);
+      wrap.appendChild(row);
+      wrap.appendChild(noteField(step.id, 'Note (optional)'));
+    }
+
+    if (it.type === 'note') {
+      wrap.appendChild(noteField(step.id, 'Your note'));
+    }
+
+    box.appendChild(wrap);
+  }
+
+  // Progress
+
+  const dots = steps.map((step, i) => {
+    const d = el('button', 'dot');
+    d.type = 'button';
+    d.setAttribute('aria-label', `Step ${i + 1}: ${step.title}`);
+    d.title = `${i + 1}. ${step.title}`;
+    if (step.interaction) d.classList.add('has-ask');
+    d.addEventListener('click', () => go(i));
+    $('dots').appendChild(d);
+    return d;
+  });
+
+  function updateProgress() {
+    const asks = steps.filter(s => s.interaction);
+    const done = asks.filter(s => isAnswered(s.interaction, answers[s.id])).length;
+    $('answered').textContent = asks.length ? `${done} of ${asks.length} answered` : '';
+    dots.forEach((d, i) => {
+      const s = steps[i];
+      d.classList.toggle('current', i === current);
+      d.classList.toggle('seen', seen.has(i));
+      d.classList.toggle('answered', !!s.interaction && isAnswered(s.interaction, answers[s.id]));
+      if (i === current) d.setAttribute('aria-current', 'step');
+      else d.removeAttribute('aria-current');
+    });
+  }
+
+  // Narration
+
+  const voicePickKey = 'walkthrough:voice';
+  const PREFERRED = ['Samantha', 'Daniel', 'Karen', 'Moira', 'Tessa'];
+
+  function englishVoices() {
+    return synth.getVoices().filter(v => /^en([-_]|$)/i.test(v.lang));
+  }
+
+  // Natural-sounding voices first: macOS Premium and Enhanced downloads, then Siri, then the better built-ins.
+  function voiceRank(v) {
+    if (/premium/i.test(v.name)) return 0;
+    if (/enhanced/i.test(v.name)) return 1;
+    if (/siri/i.test(v.name)) return 2;
+    const i = PREFERRED.findIndex(n => v.name.startsWith(n));
+    if (i >= 0) return 3 + i;
+    if (/\(|bad news|bahh|bells|boing|bubbles|cellos|wobble|organ|jester|superstar|good news|fred|albert|ralph|kathy|junior/i.test(v.name)) return 20;
+    return 10;
+  }
+
+  function pickVoice(text) {
+    if (!/\b(the|and|is|are|this|that|to|of|we|it)\b/i.test(text)) return null;
+    const english = englishVoices();
+    let chosen = null;
+    try { chosen = localStorage.getItem(voicePickKey); } catch {}
+    if (chosen) {
+      const v = english.find(v => v.name === chosen);
+      if (v) return v;
+    }
+    return english.slice().sort((a, b) => voiceRank(a) - voiceRank(b))[0] || null;
+  }
+
+  function speak() {
+    if (!synth) return;
+    synth.cancel();
+    const text = steps[current].narration;
+    if (!text) return;
+    const u = new SpeechSynthesisUtterance(text);
+    const voice = pickVoice(text);
+    if (voice) {
+      u.voice = voice;
+      u.lang = voice.lang;
+    }
+    u.rate = 0.92;
+    synth.speak(u);
+  }
+
+  function setNarrate(on) {
+    narrate = on;
+    try { localStorage.setItem(voiceKey, on ? 'on' : 'off'); } catch {}
+    $('voice').setAttribute('aria-pressed', String(on));
+    $('voice-label').textContent = on ? 'Narration on' : 'Narration off';
+    if (on) speak();
+    else if (synth) synth.cancel();
+  }
+
+  if (synth) {
+    $('voice').setAttribute('aria-pressed', String(narrate));
+    $('voice-label').textContent = narrate ? 'Narration on' : 'Narration off';
+    $('voice').addEventListener('click', () => setNarrate(!narrate));
+    $('replay').addEventListener('click', () => (synth.speaking ? synth.cancel() : speak()));
+    window.addEventListener('pagehide', () => synth.cancel());
+  } else {
+    $('voice').hidden = true;
+    $('replay').hidden = true;
+    $('nospeech').hidden = false;
+  }
+
+  // Navigation
+
+  function render() {
+    const step = steps[current];
+    seen.add(current);
+    const counter = $('counter');
+    counter.replaceChildren(document.createTextNode(`${current + 1} `), el('span', 'of', `/ ${steps.length}`));
+    $('step-title').textContent = step.title;
+    const cap = (step.visual && step.visual.caption) || '';
+    inlineText($('step-text'), cap ? `${step.text} ${cap}${/[.!?]$/.test(cap) ? '' : '.'}` : step.text);
+
+    const visual = $('visual');
+    visual.replaceChildren();
+    const v = step.visual || {};
+    const board = $('board');
+    board.classList.toggle('empty', !['diagram', 'diff', 'code'].includes(v.type));
+    if (v.type === 'diagram') renderDiagram(visual, v);
+    if (v.type === 'diff') renderLines(visual, v, true);
+    if (v.type === 'code') renderLines(visual, v, false);
+
+    renderInteraction(step);
+    hideTip();
+    renderQuestions();
+    $('prev').disabled = current === 0;
+    $('next').disabled = current === steps.length - 1;
+    updateProgress();
+  }
+
+  function go(i) {
+    const next = Math.max(0, Math.min(steps.length - 1, i));
+    const changed = next !== current;
+    current = next;
+    render();
+    const hash = `#step-${current + 1}`;
+    if (location.hash !== hash) {
+      try { history.replaceState(null, '', hash); } catch { location.hash = hash; }
+    }
+    if (narrate && changed) speak();
+  }
+
+  $('prev').addEventListener('click', () => go(current - 1));
+  $('next').addEventListener('click', () => go(current + 1));
+
+  window.addEventListener('hashchange', () => {
+    const m = location.hash.match(/^#step-(\d+)$/);
+    if (m && Number(m[1]) - 1 !== current) go(Number(m[1]) - 1);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!$('result').hidden) {
+      if (e.key === 'Escape') closeResult();
+      return;
+    }
+    if (!$('filepanel').hidden) {
+      if (e.key === 'Escape') closeFile();
+      return;
+    }
+    if (e.key === 'Escape' && !$('tip').hidden) { hideTip(); return; }
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    const actions = {
+      ArrowRight: () => go(current + 1),
+      ' ': () => go(current + 1),
+      j: () => go(current + 1),
+      ArrowLeft: () => go(current - 1),
+      k: () => go(current - 1),
+      Home: () => go(0),
+      End: () => go(steps.length - 1),
+      r: () => (synth && synth.speaking ? synth.cancel() : speak()),
+      m: () => synth && setNarrate(!narrate),
+    };
+    const action = actions[e.key];
+    if (!action) return;
+    e.preventDefault();
+    action();
+  });
+
+  // Finish
+
+  function closeResult() {
+    $('result').hidden = true;
+    $('finish').focus();
+  }
+
+  function showJson(message, json, label = 'Copy answers') {
+    $('result-msg').textContent = message;
+    const area = $('result-json');
+    area.value = json;
+    area.hidden = false;
+    $('copy').hidden = false;
+    $('copy').textContent = label;
+    $('copy').focus();
+  }
+
+  async function finish() {
+    const json = JSON.stringify(buildAnswers(doc, answers), null, 2);
+    $('result').hidden = false;
+    $('result-json').hidden = true;
+    $('copy').hidden = true;
+    $('result-close').focus();
+    if (location.protocol !== 'http:' && location.protocol !== 'https:') {
+      showJson('Paste this to the agent.', json);
+      return;
+    }
+    $('result-msg').textContent = 'Sending answers.';
+    try {
+      const res = await fetch('/answers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json });
+      const body = await res.json();
+      if (res.ok && body.ok) {
+        showJson('Answers saved. Nothing is changed yet. Go back to the agent that built this walkthrough and paste this note so it reviews them.',
+          `Review my walkthrough answers in ${body.path}. For each flag, question or note, state your position or propose a change. Do not implement anything until I confirm.`,
+          'Copy note');
+        return;
+      }
+    } catch {}
+    showJson('Could not save to the server. Paste this to the agent.', json);
+  }
+
+  async function copyAnswers() {
+    const area = $('result-json');
+    try {
+      await navigator.clipboard.writeText(area.value);
+    } catch {
+      area.focus();
+      area.select();
+      document.execCommand('copy');
+    }
+    $('copy').textContent = 'Copied';
+  }
+
+  $('finish').addEventListener('click', finish);
+  $('copy').addEventListener('click', copyAnswers);
+  $('result-close').addEventListener('click', closeResult);
+
+  const params = new URLSearchParams(location.search);
+  const fromHash = location.hash.match(/^#step-(\d+)$/);
+  const start = fromHash ? Number(fromHash[1]) : Number(params.get('step')) || 1;
+  current = Math.max(0, Math.min(steps.length - 1, start - 1));
+  go(current);
+}
+</script>
+</body>
+</html>

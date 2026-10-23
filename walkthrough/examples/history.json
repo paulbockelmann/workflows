@@ -1,0 +1,72 @@
+{
+  "mode": "history",
+  "title": "How logtail was built",
+  "subtitle": "4 commits on main, 3e1f0a7..c92d4b8",
+  "diagram": {
+    "nodes": [
+      { "id": "args", "label": "parse_args", "sub": "cli.py", "x": 40, "y": 190, "w": 150 },
+      { "id": "reader", "label": "follow()", "sub": "reader.py", "x": 260, "y": 190, "w": 150 },
+      { "id": "file", "label": "Log file", "sub": "/var/log/*.log", "x": 260, "y": 330, "w": 150, "kind": "external" },
+      { "id": "filter", "label": "LineFilter", "sub": "filter.py", "x": 470, "y": 190, "w": 150 },
+      { "id": "printer", "label": "print_line", "sub": "output.py", "x": 640, "y": 100, "w": 140 },
+      { "id": "json", "label": "JSON output", "sub": "--json", "x": 640, "y": 280, "w": 140, "kind": "client" }
+    ],
+    "edges": [
+      { "from": "args", "to": "reader", "label": "path" },
+      { "from": "file", "to": "reader", "label": "lines" },
+      { "id": "direct", "from": "reader", "to": "printer" },
+      { "from": "args", "to": "filter", "label": "--grep, --level", "dashed": true },
+      { "from": "reader", "to": "filter" },
+      { "from": "filter", "to": "printer" },
+      { "from": "filter", "to": "json" }
+    ]
+  },
+  "steps": [
+    {
+      "id": "c1",
+      "title": "3e1f0a7: print a file",
+      "text": "The first commit adds `cli.py` with `argparse`. It opens the path given on the command line, prints every line, and exits.",
+      "narration": "The first version is a plain file printer with one argument.",
+      "visual": { "type": "diagram", "add": ["args", "file", "printer"], "caption": "cli.py prints lines without a reader" },
+      "interaction": { "type": "review" }
+    },
+    {
+      "id": "c2",
+      "title": "8b2d551: follow the file",
+      "text": "`follow()` seeks to the end of the file and polls for new lines every 200 ms. It reopens the file when the inode changes, so log rotation does not stop the output.",
+      "narration": "The second commit turns the printer into a tail that survives log rotation.",
+      "visual": { "type": "diagram", "add": ["reader", "args->reader", "file->reader", "direct"] },
+      "interaction": { "type": "review" }
+    },
+    {
+      "id": "c2-code",
+      "title": "The rotation check",
+      "text": "Each poll compares the inode of the open handle with the inode at the path. A mismatch means logrotate moved the file, so the reader closes and reopens.",
+      "narration": "Comparing inodes is how the reader notices rotation.",
+      "visual": {
+        "type": "diff",
+        "file": "logtail/reader.py",
+        "lang": "python",
+        "hunk": "@@ -8,6 +8,13 @@ def follow(path, interval=0.2):\n     fh = open(path)\n     fh.seek(0, os.SEEK_END)\n     while True:\n         line = fh.readline()\n         if line:\n             yield line\n+            continue\n+        if os.stat(path).st_ino != os.fstat(fh.fileno()).st_ino:\n+            fh.close()\n+            fh = open(path)\n+            continue\n         time.sleep(interval)",
+        "highlight": [9, 10, 11]
+      },
+      "interaction": { "type": "review", "prompt": "Does the reopen handle a file that does not exist yet?" }
+    },
+    {
+      "id": "c3",
+      "title": "51f7e09: filter lines",
+      "text": "`LineFilter` applies `--grep` as a regex and `--level` as a minimum severity. The reader no longer calls the printer directly; every line passes through the filter first.",
+      "narration": "The third commit puts a filter between reading and printing.",
+      "visual": { "type": "diagram", "add": ["filter", "args->filter", "reader->filter", "filter->printer"], "remove": ["direct"] },
+      "interaction": { "type": "review" }
+    },
+    {
+      "id": "c4",
+      "title": "c92d4b8: JSON output",
+      "text": "With `--json`, each matching line is written as one JSON object with `ts`, `level` and `msg` fields. Lines that do not parse keep the raw text in `msg`.",
+      "narration": "The last commit adds machine-readable output for piping into other tools.",
+      "visual": { "type": "diagram", "add": ["json", "filter->json"] },
+      "interaction": { "type": "review", "prompt": "Should unparsed lines be dropped instead?" }
+    }
+  ]
+}

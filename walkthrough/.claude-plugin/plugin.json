@@ -1,0 +1,7 @@
+{
+  "name": "walkthrough",
+  "version": "1.0.0",
+  "description": "Step-by-step visual walkthroughs of code work: a diagram that builds up per step, short text, optional narration and clickable answers that go back to the agent. Modes: design, commit, history N, repo.",
+  "skills": ["./"],
+  "keywords": ["walkthrough", "visual", "architecture", "commits", "code-review", "learning"]
+}

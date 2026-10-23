@@ -1,0 +1,14 @@
+{
+  "name": "walkthrough",
+  "owner": {
+    "name": "<your-name>"
+  },
+  "plugins": [
+    {
+      "name": "walkthrough",
+      "source": "./",
+      "description": "Step-by-step visual walkthroughs of code work: a diagram that builds up per step, short text, optional narration and clickable answers that go back to the agent. Modes: design, commit, history N, repo.",
+      "version": "1.0.0"
+    }
+  ]
+}

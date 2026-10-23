@@ -1,0 +1,179 @@
+{
+  "mode": "commit",
+  "title": "Add session expiry",
+  "subtitle": "a41c9e2 in auth-service, 4 files changed",
+  "diagram": {
+    "nodes": [
+      {
+        "id": "client",
+        "label": "Client",
+        "sub": "cookie: sid",
+        "x": 30,
+        "y": 180,
+        "w": 130,
+        "kind": "client"
+      },
+      {
+        "id": "middleware",
+        "label": "auth middleware",
+        "sub": "src/auth/middleware.py",
+        "x": 230,
+        "y": 180,
+        "w": 190
+      },
+      {
+        "id": "store",
+        "label": "Session store",
+        "sub": "src/auth/session.py",
+        "x": 500,
+        "y": 180,
+        "w": 180,
+        "kind": "store"
+      },
+      {
+        "id": "sweeper",
+        "label": "sweep_expired",
+        "sub": "cron, every 5 min",
+        "x": 500,
+        "y": 330,
+        "w": 180,
+        "kind": "infra"
+      }
+    ],
+    "edges": [
+      {
+        "from": "client",
+        "to": "middleware",
+        "label": "request"
+      },
+      {
+        "from": "middleware",
+        "to": "store",
+        "label": "get(token)"
+      },
+      {
+        "id": "sweep",
+        "from": "sweeper",
+        "to": "store",
+        "label": "delete expired",
+        "dashed": true
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "title": "Where sessions live today",
+      "text": "Every request passes through `auth middleware`, which looks up the `sid` cookie in the session store. Before this commit a session never expired; it stayed valid until logout.",
+      "narration": "Requests are authenticated by a store lookup, and sessions had no expiry.",
+      "visual": {
+        "type": "diagram",
+        "add": [
+          "client",
+          "middleware",
+          "store",
+          "client->middleware",
+          "middleware->store"
+        ]
+      },
+      "interaction": {
+        "type": "review"
+      }
+    },
+    {
+      "id": "s2",
+      "title": "Sessions now carry an expiry",
+      "text": "`create_session` stores a `SessionRecord` with `expires_at` instead of a bare user id. `SESSION_TTL` defaults to 8 hours and reads from the `AUTH_SESSION_TTL` environment variable.",
+      "narration": "Each stored session now records when it stops being valid.",
+      "visual": {
+        "type": "diff",
+        "file": "src/auth/session.py",
+        "lang": "python",
+        "hunk": "@@ -1,6 +1,17 @@\n import secrets\n+import os\n+from dataclasses import dataclass\n+from datetime import datetime, timedelta, timezone\n+\n+SESSION_TTL = timedelta(seconds=int(os.environ.get(\"AUTH_SESSION_TTL\", 28800)))\n+\n+@dataclass\n+class SessionRecord:\n+    user_id: int\n+    expires_at: datetime\n \n def create_session(user):\n     token = secrets.token_urlsafe(32)\n-    store[token] = user.id\n+    expires = datetime.now(timezone.utc) + SESSION_TTL\n+    store[token] = SessionRecord(user.id, expires)\n     return token",
+        "highlight": [
+          7,
+          17,
+          18
+        ]
+      },
+      "interaction": {
+        "type": "review",
+        "prompt": "Is 8 hours the right default?"
+      }
+    },
+    {
+      "id": "s3",
+      "title": "Lookups reject expired sessions",
+      "text": "`get_session` compares `expires_at` with the current UTC time. An expired record is deleted on read and the caller gets `None`, the same result as an unknown token.",
+      "narration": "Reading an expired session deletes it and behaves like a missing session.",
+      "visual": {
+        "type": "diff",
+        "file": "src/auth/session.py",
+        "lang": "python",
+        "hunk": "@@ -17,2 +28,8 @@ def create_session(user):\n def get_session(token):\n-    return store.get(token)\n+    record = store.get(token)\n+    if record is None:\n+        return None\n+    if record.expires_at <= datetime.now(timezone.utc):\n+        del store[token]\n+        return None\n+    return record",
+        "highlight": [
+          7,
+          8
+        ]
+      },
+      "interaction": {
+        "type": "review"
+      }
+    },
+    {
+      "id": "s4",
+      "title": "Middleware returns 401 on expiry",
+      "text": "The middleware now reads `record.user_id` instead of the raw value. When `get_session` returns `None` it clears the `sid` cookie so the browser stops sending a dead token.",
+      "narration": "Expired sessions produce a 401 and the stale cookie is removed.",
+      "visual": {
+        "type": "diff",
+        "file": "src/auth/middleware.py",
+        "lang": "python",
+        "hunk": "@@ -9,4 +9,7 @@ async def auth_middleware(request, call_next):\n     token = request.cookies.get(\"sid\")\n-    user_id = get_session(token)\n-    if user_id is None:\n-        return JSONResponse({\"error\": \"unauthorized\"}, status_code=401)\n+    record = get_session(token)\n+    if record is None:\n+        response = JSONResponse({\"error\": \"unauthorized\"}, status_code=401)\n+        response.delete_cookie(\"sid\")\n+        return response\n+    request.state.user_id = record.user_id",
+        "highlight": [
+          9
+        ]
+      },
+      "interaction": {
+        "type": "review"
+      }
+    },
+    {
+      "id": "s5",
+      "title": "A sweeper removes abandoned sessions",
+      "text": "Sessions that are never read again would stay in memory forever. `sweep_expired` runs every 5 minutes from the existing scheduler and deletes all records past `expires_at`.",
+      "narration": "A periodic job cleans up sessions nobody reads anymore.",
+      "visual": {
+        "type": "diagram",
+        "add": [
+          "sweeper",
+          "sweep"
+        ],
+        "caption": "New: scheduled cleanup"
+      },
+      "interaction": {
+        "type": "review"
+      }
+    },
+    {
+      "id": "s6",
+      "title": "Tests use a frozen clock",
+      "text": "The new tests patch `datetime.now` to move past the TTL instead of sleeping. They cover expiry on read, the cookie removal, and the sweeper.",
+      "narration": "Tests freeze time to check expiry without waiting.",
+      "visual": {
+        "type": "code",
+        "file": "tests/test_session.py",
+        "lang": "python",
+        "code": "def test_expired_session_is_rejected(frozen_clock):\n    token = create_session(User(id=7))\n    frozen_clock.advance(SESSION_TTL + timedelta(seconds=1))\n    assert get_session(token) is None\n    assert token not in store",
+        "highlight": [
+          3,
+          4
+        ]
+      },
+      "interaction": {
+        "type": "review",
+        "prompt": "Anything missing from the test coverage?"
+      }
+    }
+  ]
+}

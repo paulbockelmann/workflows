@@ -1,0 +1,108 @@
+{
+  "mode": "design",
+  "title": "URL shortener service design",
+  "subtitle": "Proposal for short.internal, draft 1",
+  "diagram": {
+    "width": 800,
+    "height": 450,
+    "nodes": [
+      { "id": "browser", "label": "Browser", "sub": "GET /abc123", "x": 30, "y": 190, "w": 140, "kind": "client" },
+      { "id": "api", "label": "API", "sub": "Go, net/http", "x": 260, "y": 190, "kind": "service" },
+      { "id": "cache", "label": "Cache", "sub": "Redis", "x": 500, "y": 60, "kind": "store" },
+      { "id": "db", "label": "Links table", "sub": "Postgres", "x": 500, "y": 190, "kind": "store" },
+      { "id": "queue", "label": "Click events", "sub": "Redis stream", "x": 500, "y": 330, "kind": "queue" },
+      { "id": "stats", "label": "Stats worker", "sub": "batch insert", "x": 670, "y": 330, "w": 120, "kind": "service" }
+    ],
+    "edges": [
+      { "from": "browser", "to": "api", "label": "HTTP" },
+      { "from": "api", "to": "db", "label": "SQL" },
+      { "from": "api", "to": "cache", "label": "lookup" },
+      { "from": "api", "to": "queue", "label": "XADD", "dashed": true },
+      { "from": "queue", "to": "stats", "dashed": true }
+    ],
+    "groups": [
+      { "id": "storage", "label": "Storage", "x": 480, "y": 30, "w": 300, "h": 240 }
+    ]
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "title": "Two endpoints",
+      "text": "`POST /links` takes a long URL and returns a 7-character code. `GET /<code>` answers with a 301 redirect. Nothing else is in scope for the first version.",
+      "narration": "The service does two things: create a short code and redirect from it.",
+      "visual": { "type": "diagram", "add": ["browser", "api", "browser->api"] }
+    },
+    {
+      "id": "s2",
+      "title": "Where links are stored",
+      "text": "Each link is one row: `code`, `target_url`, `created_at`, `owner_id`. Reads outnumber writes about 100 to 1, and the row count stays under 50 million for the next two years.",
+      "narration": "Links need a durable store. The data is small and read-heavy.",
+      "visual": { "type": "diagram", "add": ["storage", "db", "api->db"] },
+      "interaction": {
+        "type": "choice",
+        "prompt": "Which database holds the links table?",
+        "options": [
+          { "id": "postgres", "label": "Postgres", "pros": "Unique constraint on code, team already runs it", "cons": "One more schema to migrate" },
+          { "id": "dynamodb", "label": "DynamoDB", "pros": "No capacity planning, key lookups only", "cons": "New to the team, harder local dev" }
+        ],
+        "recommended": "postgres",
+        "note": true
+      }
+    },
+    {
+      "id": "s3",
+      "title": "How codes are generated",
+      "text": "A code must be unique and hard to guess in sequence. With 62 characters and length 7 there are about 3.5 trillion codes, so collisions stay rare.",
+      "narration": "Pick between random codes with a retry, or codes derived from a counter.",
+      "visual": {
+        "type": "code",
+        "file": "internal/links/code.go",
+        "lang": "go",
+        "code": "const alphabet = \"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n\nfunc newCode() string {\n\tb := make([]byte, 7)\n\tfor i := range b {\n\t\tb[i] = alphabet[rand.IntN(len(alphabet))]\n\t}\n\treturn string(b)\n}",
+        "highlight": [4, 6]
+      },
+      "interaction": {
+        "type": "choice",
+        "prompt": "How should codes be generated?",
+        "options": [
+          { "id": "random", "label": "Random, retry on conflict", "pros": "No coordination, codes not guessable", "cons": "Rare retry on insert" },
+          { "id": "counter", "label": "Base62 of a sequence", "pros": "Never collides", "cons": "Codes are sequential and enumerable" }
+        ],
+        "recommended": "random"
+      }
+    },
+    {
+      "id": "s4",
+      "title": "Caching redirects",
+      "text": "Most traffic hits a few hundred popular codes. A cache in front of Postgres keeps redirect latency under 5 ms and takes read load off the primary.",
+      "narration": "A cache serves the hot codes so Postgres only sees misses.",
+      "visual": { "type": "diagram", "add": ["cache", "api->cache"], "highlight": ["cache", "api->cache"] },
+      "interaction": {
+        "type": "choice",
+        "prompt": "Which cache?",
+        "options": [
+          { "id": "redis", "label": "Redis, shared", "pros": "All API instances share hits, TTL per key", "cons": "Another service to run" },
+          { "id": "inproc", "label": "In-process LRU", "pros": "No network hop, nothing to deploy", "cons": "Each instance warms its own cache" },
+          { "id": "none", "label": "No cache yet", "pros": "Simplest start", "cons": "Every redirect is a database read" }
+        ],
+        "recommended": "redis",
+        "note": true
+      }
+    },
+    {
+      "id": "s5",
+      "title": "Counting clicks off the hot path",
+      "text": "The redirect handler appends a click event to a Redis stream and returns. A worker reads the stream and inserts counts in batches every 10 seconds.",
+      "narration": "Click counting happens asynchronously, so redirects never wait on analytics.",
+      "visual": { "type": "diagram", "add": ["queue", "stats", "api->queue", "queue->stats"] }
+    },
+    {
+      "id": "s6",
+      "title": "Open questions",
+      "text": "Not decided yet: whether links expire, how owners delete a link, and whether we block known phishing domains at creation time.",
+      "narration": "Three questions are still open. Add anything else that should be settled first.",
+      "visual": { "type": "diagram", "highlight": ["api"], "caption": "Full design as proposed" },
+      "interaction": { "type": "note", "prompt": "What else should be decided before building?" }
+    }
+  ]
+}

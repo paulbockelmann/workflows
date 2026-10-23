@@ -1,0 +1,84 @@
+{
+  "mode": "repo",
+  "title": "Orders service tour",
+  "subtitle": "github.com/acme/orders, main at 7d03f1e",
+  "diagram": {
+    "width": 800,
+    "height": 450,
+    "nodes": [
+      { "id": "web", "label": "Web app", "sub": "React SPA", "x": 20, "y": 190, "w": 120, "kind": "client" },
+      { "id": "api", "label": "API", "sub": "app/main.py, FastAPI", "x": 210, "y": 190, "w": 170 },
+      { "id": "pg", "label": "Postgres", "sub": "SQLAlchemy models", "x": 450, "y": 100, "w": 150, "kind": "store" },
+      { "id": "redis", "label": "Redis", "sub": "task broker", "x": 450, "y": 300, "w": 150, "kind": "queue" },
+      { "id": "worker", "label": "Worker", "sub": "worker/tasks.py, Celery", "x": 230, "y": 360, "w": 170 },
+      { "id": "stripe", "label": "Stripe", "sub": "payments", "x": 660, "y": 300, "w": 120, "kind": "external" }
+    ],
+    "edges": [
+      { "from": "web", "to": "api", "label": "REST /api/v1" },
+      { "from": "api", "to": "pg", "label": "async SQL" },
+      { "from": "api", "to": "redis", "label": "enqueue" },
+      { "from": "redis", "to": "worker", "label": "consume" },
+      { "from": "worker", "to": "pg", "label": "update status", "dashed": true },
+      { "from": "worker", "to": "stripe", "label": "charge" }
+    ],
+    "groups": [
+      { "id": "compose", "label": "docker-compose.yml", "x": 190, "y": 70, "w": 430, "h": 360 }
+    ]
+  },
+  "steps": [
+    {
+      "id": "r1",
+      "title": "The API entry point",
+      "text": "`app/main.py` creates the FastAPI app and mounts routers from `app/routes/`. The web app calls it under `/api/v1`; auth is a bearer token checked in `app/deps.py`.",
+      "narration": "Everything starts at the FastAPI app, which the web client calls over REST.",
+      "visual": { "type": "diagram", "add": ["web", "api", "web->api"] },
+      "interaction": { "type": "note", "prompt": "Unclear? Write what to explain." }
+    },
+    {
+      "id": "r2",
+      "title": "Postgres through SQLAlchemy",
+      "text": "Models live in `app/models.py`. Each request gets an `AsyncSession` from `get_db`. Alembic migrations are in `migrations/versions/` and run on container start.",
+      "narration": "The API reads and writes Postgres through async SQLAlchemy sessions.",
+      "visual": { "type": "diagram", "add": ["pg", "api->pg"] },
+      "interaction": { "type": "note", "prompt": "Unclear? Write what to explain." }
+    },
+    {
+      "id": "r3",
+      "title": "How a request gets a session",
+      "text": "`get_db` is a FastAPI dependency. The session commits when the route returns and rolls back if it raises, so routes never call `commit()` themselves.",
+      "narration": "One dependency owns the transaction for each request.",
+      "visual": {
+        "type": "code",
+        "file": "app/db.py",
+        "lang": "python",
+        "code": "async def get_db() -> AsyncIterator[AsyncSession]:\n    async with SessionLocal() as session:\n        try:\n            yield session\n            await session.commit()\n        except Exception:\n            await session.rollback()\n            raise",
+        "highlight": [5, 7]
+      },
+      "interaction": { "type": "note", "prompt": "Unclear? Write what to explain." }
+    },
+    {
+      "id": "r4",
+      "title": "Slow work goes to a worker",
+      "text": "Charging a card takes seconds, so `POST /orders` stores the order as `pending` and enqueues `charge_order`. Redis is the Celery broker.",
+      "narration": "The API hands slow payment work to a Celery worker through Redis.",
+      "visual": { "type": "diagram", "add": ["redis", "worker", "api->redis", "redis->worker"] },
+      "interaction": { "type": "note", "prompt": "Unclear? Write what to explain." }
+    },
+    {
+      "id": "r5",
+      "title": "The worker charges and updates",
+      "text": "`charge_order` calls Stripe, then sets the order to `paid` or `failed` in Postgres. It retries three times on network errors with exponential backoff.",
+      "narration": "The worker talks to Stripe and writes the outcome back to the database.",
+      "visual": { "type": "diagram", "add": ["stripe", "worker->stripe", "worker->pg"] },
+      "interaction": { "type": "note", "prompt": "Unclear? Write what to explain." }
+    },
+    {
+      "id": "r6",
+      "title": "What runs locally",
+      "text": "`docker compose up` starts the API, worker, Postgres and Redis. Stripe stays external; local runs use the test key from `.env.example`.",
+      "narration": "Four containers run locally. Stripe is the only outside dependency.",
+      "visual": { "type": "diagram", "add": ["compose"], "highlight": ["compose"], "caption": "Inside the box: docker-compose services" },
+      "interaction": { "type": "note", "prompt": "Unclear? Write what to explain." }
+    }
+  ]
+}
