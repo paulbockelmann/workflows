@@ -25,20 +25,21 @@ Only the short narration lines leave the machine, nothing else from the page. Th
 As a plugin (Claude Code updates it for you):
 
 ```
-/plugin install walkthrough --marketplace <owner>/<repo>
+/plugin install walkthrough --marketplace paulbockelmann/workflows
 ```
 
 On older Claude Code versions, add the marketplace first, then install:
 
 ```
-/plugin marketplace add <owner>/<repo>
-/plugin install walkthrough@walkthrough
+/plugin marketplace add paulbockelmann/workflows
+/plugin install walkthrough@workflows
 ```
 
-As a plain skill: clone this repo to `~/.claude/skills/walkthrough/` (all projects) or `.claude/skills/walkthrough/` (one project).
+As a plain skill: copy the `walkthrough` folder of this repo to `~/.claude/skills/walkthrough/` (all projects) or `.claude/skills/walkthrough/` (one project).
 
 ```
-git clone https://github.com/<owner>/<repo> ~/.claude/skills/walkthrough
+git clone https://github.com/paulbockelmann/workflows
+cp -r workflows/walkthrough ~/.claude/skills/
 ```
 
 ## Use

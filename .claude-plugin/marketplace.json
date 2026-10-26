@@ -1,14 +1,16 @@
 {
-  "name": "walkthrough",
+  "name": "workflows",
   "owner": {
-    "name": "<your-name>"
+    "name": "paulbockelmann",
+    "url": "https://github.com/paulbockelmann"
   },
   "plugins": [
     {
       "name": "walkthrough",
-      "source": "./",
+      "source": "./walkthrough",
       "description": "Step-by-step visual walkthroughs of code work: a diagram that builds up per step, short text, optional narration and clickable answers that go back to the agent. Modes: design, commit, history N, repo.",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "license": "MIT"
     }
   ]
 }
